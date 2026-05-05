@@ -1,23 +1,8 @@
-# Dependencies
 node_modules/
-
-# Environment variables
 .env
-
-# Build files
+.env.*
 dist/
 build/
-
-# Logs
 *.log
-
-# Database (SQLite)
 *.db
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Editor
-.vscode/
-.idea/
+*.sqlite
