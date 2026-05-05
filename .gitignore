@@ -1,16 +1,20 @@
 # Dependencies
-.node_modules/
+node_modules/
 
 # Environment variables
 .env
-.env.local
-.env.production
+
+# Build files
+dist/
+build/
 
 # Logs
 *.log
-npm-debug.log*
 
-# OS
+# Database (SQLite)
+*.db
+
+# OS files
 .DS_Store
 Thumbs.db
 
