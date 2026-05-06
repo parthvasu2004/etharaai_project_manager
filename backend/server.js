@@ -7,7 +7,7 @@ const cors = require("cors");
 const app = express();
 
 app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:5173",
+  origin: process.env.CLIENT_URL || "https://etharaai-project-manager-vjv6.vercel.app",
   credentials: true,
 }));
 app.use(express.json());
