@@ -16,59 +16,84 @@ router.post("/signup", async (req, res) => {
 
   try {
     const hash = await bcrypt.hash(password, 12);
-    db.run(
-      "INSERT INTO users (username, password) VALUES (?, ?)",
-      [username, hash],
-      function (err) {
-        if (err) {
-          if (err.message.includes("UNIQUE constraint failed")) {
-            return res.status(409).json({ error: "Username already taken" });
-          }
-          return res.status(500).json({ error: err.message });
-        }
-        res.status(201).json({ message: "User created", userId: this.lastID });
+
+    try {
+      const result = db
+        .prepare("INSERT INTO users (username, password) VALUES (?, ?)")
+        .run(username, hash);
+
+      res.status(201).json({
+        message: "User created",
+        userId: result.lastInsertRowid,
+      });
+
+    } catch (err) {
+      if (err.message.includes("UNIQUE constraint failed")) {
+        return res.status(409).json({ error: "Username already taken" });
       }
-    );
+      return res.status(500).json({ error: err.message });
+    }
+
   } catch (err) {
     res.status(500).json({ error: "Server error" });
   }
 });
 
+
 // POST /auth/login
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ error: "Username and password are required" });
   }
 
-  db.get(
-    "SELECT * FROM users WHERE username = ?",
-    [username],
-    async (err, user) => {
-      if (err) return res.status(500).json({ error: err.message });
-      if (!user) return res.status(404).json({ error: "User not found" });
+  try {
+    const user = db
+      .prepare("SELECT * FROM users WHERE username = ?")
+      .get(username);
 
-      const valid = await bcrypt.compare(password, user.password);
-      if (!valid) return res.status(401).json({ error: "Invalid password" });
-
-      const token = jwt.sign(
-        { id: user.id, username: user.username },
-        SECRET,
-        { expiresIn: "1d" }
-      );
-
-      res.json({ token, user: { id: user.id, username: user.username } });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
     }
-  );
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ error: "Invalid password" });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, username: user.username },
+      SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.json({
+      token,
+      user: { id: user.id, username: user.username },
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
+
 
 // GET /auth/users — for assigning tasks
-router.get("/users", require("../middleware/authMiddleware"), (req, res) => {
-  db.all("SELECT id, username FROM users", [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
-});
+router.get(
+  "/users",
+  require("../middleware/authMiddleware"),
+  (req, res) => {
+    try {
+      const users = db
+        .prepare("SELECT id, username FROM users")
+        .all();
+
+      res.json(users);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
 
 module.exports = router;
