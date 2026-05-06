@@ -74,8 +74,7 @@ export default function Signup() {
               value={role}
               onChange={(e) => setRole(e.target.value)}
             >
-              <option value="taskers">Taskers</option>
-              <option value="taskers">Taskers</option>
+
             </select>
           </div>
 
