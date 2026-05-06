@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import ProjectForm from "../components/ProjectForm";
 import TaskForm from "../components/TaskForm";
@@ -15,6 +15,9 @@ export default function Dashboard() {
   const [loadingTasks, setLoadingTasks] = useState(false);
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  // Is the logged-in user the creator of the selected project?
+  const isProjectCreator = selectedProject?.created_by === user.id;
 
   // Load projects on mount
   useEffect(() => {
@@ -41,7 +44,6 @@ export default function Dashboard() {
   }, [selectedProject]);
 
   function handleProjectCreated(project) {
-    // Re-fetch projects to get full data with creator info
     getProjects().then((data) => {
       setProjects(data);
       const newP = data.find((p) => p.id === project.projectId) || data[0];
@@ -65,7 +67,6 @@ export default function Dashboard() {
   }
 
   function handleTaskCreated(task) {
-    // Re-fetch to get full task with join data
     if (selectedProject) {
       getTasks(selectedProject.id).then(setTasks).catch(console.error);
     }
@@ -187,7 +188,8 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div className="project-item-actions">
-                          {(user.role === "admin" || p.created_by === user.id) && (
+                          {/* Delete button only shown to project creator */}
+                          {p.created_by === user.id && (
                             <button
                               className="icon-btn danger"
                               onClick={(e) => {
@@ -221,12 +223,11 @@ export default function Dashboard() {
                   </div>
                   {selectedProject ? selectedProject.name : "Tasks"}
                 </div>
-                {selectedProject && (
+                {/* Add Task button only shown to project creator */}
+                {selectedProject && isProjectCreator && (
                   <button
                     className="btn btn-primary btn-sm"
-                    onClick={() => {
-                      setShowTaskForm((v) => !v);
-                    }}
+                    onClick={() => setShowTaskForm((v) => !v)}
                   >
                     {showTaskForm ? "✕" : "＋ Add Task"}
                   </button>
@@ -244,7 +245,7 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <>
-                    {showTaskForm && (
+                    {showTaskForm && isProjectCreator && (
                       <TaskForm
                         projectId={selectedProject.id}
                         onCreated={handleTaskCreated}
@@ -259,6 +260,8 @@ export default function Dashboard() {
                     ) : (
                       <TaskList
                         tasks={tasks}
+                        currentUserId={user.id}
+                        isProjectCreator={isProjectCreator}
                         onUpdate={handleTaskUpdate}
                         onDelete={handleTaskDelete}
                       />

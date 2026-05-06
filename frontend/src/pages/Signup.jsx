@@ -5,7 +5,7 @@ import { signup } from "../api/auth";
 export default function Signup() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("member");
+  const [role, setRole] = useState("taskers");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ export default function Signup() {
       <div className="auth-card">
         <div className="auth-logo">
           <div className="auth-logo-icon">⬡</div>
-          <div className="auth-logo-text">Task<span>Flow</span></div>
+          <div className="auth-logo-text">Hello<span>Taskers</span></div>
         </div>
 
         <h1 className="auth-title">Create account</h1>
@@ -74,8 +74,8 @@ export default function Signup() {
               value={role}
               onChange={(e) => setRole(e.target.value)}
             >
-              <option value="member">Member</option>
-              <option value="admin">Admin</option>
+              <option value="taskers">Taskers</option>
+              <option value="taskers">Taskers</option>
             </select>
           </div>
 

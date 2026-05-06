@@ -5,24 +5,20 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const SECRET = process.env.JWT_SECRET || "change_this_secret_in_production";
-const ALLOWED_ROLES = ["admin", "member"];
 
 // POST /auth/signup
 router.post("/signup", async (req, res) => {
-  const { username, password, role } = req.body;
+  const { username, password } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ error: "Username and password are required" });
   }
 
-  // Whitelist roles — never trust user-supplied role blindly
-  const safeRole = ALLOWED_ROLES.includes(role) ? role : "member";
-
   try {
     const hash = await bcrypt.hash(password, 12);
     db.run(
-      "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-      [username, hash, safeRole],
+      "INSERT INTO users (username, password) VALUES (?, ?)",
+      [username, hash],
       function (err) {
         if (err) {
           if (err.message.includes("UNIQUE constraint failed")) {
@@ -57,19 +53,19 @@ router.post("/login", (req, res) => {
       if (!valid) return res.status(401).json({ error: "Invalid password" });
 
       const token = jwt.sign(
-        { id: user.id, role: user.role, username: user.username },
+        { id: user.id, username: user.username },
         SECRET,
         { expiresIn: "1d" }
       );
 
-      res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
+      res.json({ token, user: { id: user.id, username: user.username } });
     }
   );
 });
 
 // GET /auth/users — for assigning tasks
 router.get("/users", require("../middleware/authMiddleware"), (req, res) => {
-  db.all("SELECT id, username, role FROM users", [], (err, rows) => {
+  db.all("SELECT id, username FROM users", [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });

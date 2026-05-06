@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require("../models/db");
 const auth = require("../middleware/authMiddleware");
 
-// POST /projects — create a project
+// POST /projects — create a project (any logged-in user)
 router.post("/", auth, (req, res) => {
   const { name, description } = req.body;
 
@@ -22,8 +22,8 @@ router.post("/", auth, (req, res) => {
 // GET /projects — list all projects with creator info
 router.get("/", auth, (req, res) => {
   db.all(
-    `SELECT p.*, u.username as creator_name 
-     FROM projects p 
+    `SELECT p.*, u.username as creator_name
+     FROM projects p
      LEFT JOIN users u ON p.created_by = u.id
      ORDER BY p.created_at DESC`,
     [],
@@ -37,8 +37,8 @@ router.get("/", auth, (req, res) => {
 // GET /projects/:id — single project
 router.get("/:id", auth, (req, res) => {
   db.get(
-    `SELECT p.*, u.username as creator_name 
-     FROM projects p 
+    `SELECT p.*, u.username as creator_name
+     FROM projects p
      LEFT JOIN users u ON p.created_by = u.id
      WHERE p.id = ?`,
     [req.params.id],
@@ -50,14 +50,14 @@ router.get("/:id", auth, (req, res) => {
   );
 });
 
-// DELETE /projects/:id — only creator or admin can delete
+// DELETE /projects/:id — only the project creator can delete
 router.delete("/:id", auth, (req, res) => {
   db.get("SELECT * FROM projects WHERE id = ?", [req.params.id], (err, project) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!project) return res.status(404).json({ error: "Project not found" });
 
-    if (project.created_by !== req.user.id && req.user.role !== "admin") {
-      return res.status(403).json({ error: "Not authorized to delete this project" });
+    if (project.created_by !== req.user.id) {
+      return res.status(403).json({ error: "Only the project creator can delete this project" });
     }
 
     db.run("DELETE FROM projects WHERE id = ?", [req.params.id], (err) => {

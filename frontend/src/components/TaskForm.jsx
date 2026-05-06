@@ -74,7 +74,7 @@ export default function TaskForm({ projectId, onCreated, onCancel }) {
               <option value="">Unassigned</option>
               {users.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.username} ({u.role})
+                  {u.username}
                 </option>
               ))}
             </select>

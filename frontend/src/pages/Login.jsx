@@ -30,7 +30,7 @@ export default function Login() {
       <div className="auth-card">
         <div className="auth-logo">
           <div className="auth-logo-icon">⬡</div>
-          <div className="auth-logo-text">Task<span>Flow</span></div>
+          <div className="auth-logo-text">Hello<span>Taskers</span></div>
         </div>
 
         <h1 className="auth-title">Welcome back</h1>

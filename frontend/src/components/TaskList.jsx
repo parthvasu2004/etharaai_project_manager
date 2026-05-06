@@ -3,15 +3,7 @@ import { updateTask, deleteTask } from "../api/auth";
 
 const STATUS_OPTIONS = ["pending", "in-progress", "completed"];
 
-function StatusBadge({ status }) {
-  return (
-    <span className={`status-badge status-${status}`}>
-      {status.replace("-", " ")}
-    </span>
-  );
-}
-
-export default function TaskList({ tasks, onUpdate, onDelete }) {
+export default function TaskList({ tasks, currentUserId, isProjectCreator, onUpdate, onDelete }) {
   const [filter, setFilter] = useState("all");
   const [updatingId, setUpdatingId] = useState(null);
 
@@ -78,66 +70,80 @@ export default function TaskList({ tasks, onUpdate, onDelete }) {
         </div>
       ) : (
         <div className="task-list">
-          {filtered.map((task, i) => (
-            <div
-              className="task-card"
-              key={task.id}
-              style={{ animationDelay: `${i * 0.05}s` }}
-            >
-              <div className="task-card-main">
-                <div className="task-title">{task.title}</div>
-                {task.description && (
-                  <div className="task-description">{task.description}</div>
-                )}
-                <div className="task-meta">
-                  {task.assignee_name && (
-                    <span className="task-meta-item">
-                      👤 {task.assignee_name}
+          {filtered.map((task, i) => {
+            const isAssignee = task.assigned_to === currentUserId;
+
+            return (
+              <div
+                className="task-card"
+                key={task.id}
+                style={{ animationDelay: `${i * 0.05}s` }}
+              >
+                <div className="task-card-main">
+                  <div className="task-title">{task.title}</div>
+                  {task.description && (
+                    <div className="task-description">{task.description}</div>
+                  )}
+                  <div className="task-meta">
+                    {task.assignee_name && (
+                      <span className="task-meta-item">
+                        👤 {task.assignee_name}
+                      </span>
+                    )}
+                    {task.project_name && (
+                      <span className="task-meta-item">
+                        📁 {task.project_name}
+                      </span>
+                    )}
+                    {task.created_at && (
+                      <span className="task-meta-item">
+                        🕐{" "}
+                        {new Date(task.created_at).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="task-card-right">
+                  {/* Status dropdown: only visible to the assigned user */}
+                  {isAssignee ? (
+                    <select
+                      className="status-select"
+                      value={task.status}
+                      onChange={(e) => handleStatusChange(task, e.target.value)}
+                      disabled={updatingId === task.id}
+                    >
+                      {STATUS_OPTIONS.map((s) => (
+                        <option key={s} value={s}>
+                          {s.replace("-", " ")}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className={`status-badge status-${task.status}`}>
+                      {task.status.replace("-", " ")}
                     </span>
                   )}
-                  {task.project_name && (
-                    <span className="task-meta-item">
-                      📁 {task.project_name}
-                    </span>
-                  )}
-                  {task.created_at && (
-                    <span className="task-meta-item">
-                      🕐{" "}
-                      {new Date(task.created_at).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </span>
+
+                  {/* Delete button: only visible to project creator */}
+                  {isProjectCreator && (
+                    <div className="task-actions">
+                      <button
+                        className="icon-btn danger"
+                        onClick={() => handleDelete(task.id)}
+                        title="Delete task"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
-
-              <div className="task-card-right">
-                <select
-                  className="status-select"
-                  value={task.status}
-                  onChange={(e) => handleStatusChange(task, e.target.value)}
-                  disabled={updatingId === task.id}
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>
-                      {s.replace("-", " ")}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="task-actions">
-                  <button
-                    className="icon-btn danger"
-                    onClick={() => handleDelete(task.id)}
-                    title="Delete task"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
