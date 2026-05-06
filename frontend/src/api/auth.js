@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";  // vite proxy handles routing
+const BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function getToken() {
   return localStorage.getItem("token");
@@ -18,11 +18,11 @@ async function handleResponse(res) {
 }
 
 // Auth
-export async function signup(username, password, role) {
+export async function signup(username, password) {
   const res = await fetch(`${BASE}/auth/signup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password, role }),
+    body: JSON.stringify({ username, password }),
   });
   return handleResponse(res);
 }

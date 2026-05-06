@@ -1,100 +1,78 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../models/db");
 const auth = require("../middleware/authMiddleware");
+const Project = require("../models/Project");
 
-
-// POST /projects — create a project
-router.post("/", auth, (req, res) => {
+// POST /projects
+router.post("/", auth, async (req, res) => {
   const { name, description } = req.body;
-
-  if (!name) {
-    return res.status(400).json({ error: "Project name is required" });
-  }
+  if (!name) return res.status(400).json({ error: "Project name is required" });
 
   try {
-    const result = db
-      .prepare("INSERT INTO projects (name, description, created_by) VALUES (?, ?, ?)")
-      .run(name, description || "", req.user.id);
-
-    res.status(201).json({
-      projectId: result.lastInsertRowid,
+    const project = await Project.create({
       name,
-      description,
+      description: description || "",
+      created_by: req.user.id,
     });
-
+    res.status(201).json({ projectId: project._id, name: project.name, description: project.description });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-
-// GET /projects — list all projects
-router.get("/", auth, (req, res) => {
+// GET /projects
+router.get("/", auth, async (req, res) => {
   try {
-    const projects = db
-      .prepare(`
-        SELECT p.*, u.username as creator_name
-        FROM projects p
-        LEFT JOIN users u ON p.created_by = u.id
-        ORDER BY p.created_at DESC
-      `)
-      .all();
+    const projects = await Project.find()
+      .populate("created_by", "username")
+      .sort({ createdAt: -1 });
 
-    res.json(projects);
-
+    res.json(
+      projects.map((p) => ({
+        id: p._id,
+        name: p.name,
+        description: p.description,
+        created_by: p.created_by._id,
+        creator_name: p.created_by.username,
+        created_at: p.createdAt,
+      }))
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-
-// GET /projects/:id — single project
-router.get("/:id", auth, (req, res) => {
+// GET /projects/:id
+router.get("/:id", auth, async (req, res) => {
   try {
-    const project = db
-      .prepare(`
-        SELECT p.*, u.username as creator_name
-        FROM projects p
-        LEFT JOIN users u ON p.created_by = u.id
-        WHERE p.id = ?
-      `)
-      .get(req.params.id);
+    const project = await Project.findById(req.params.id).populate("created_by", "username");
+    if (!project) return res.status(404).json({ error: "Project not found" });
 
-    if (!project) {
-      return res.status(404).json({ error: "Project not found" });
-    }
-
-    res.json(project);
-
+    res.json({
+      id: project._id,
+      name: project.name,
+      description: project.description,
+      created_by: project.created_by._id,
+      creator_name: project.created_by.username,
+      created_at: project.createdAt,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-
-// DELETE /projects/:id — only creator can delete
-router.delete("/:id", auth, (req, res) => {
+// DELETE /projects/:id — only creator
+router.delete("/:id", auth, async (req, res) => {
   try {
-    const project = db
-      .prepare("SELECT * FROM projects WHERE id = ?")
-      .get(req.params.id);
+    const project = await Project.findById(req.params.id);
+    if (!project) return res.status(404).json({ error: "Project not found" });
 
-    if (!project) {
-      return res.status(404).json({ error: "Project not found" });
+    if (project.created_by.toString() !== req.user.id.toString()) {
+      return res.status(403).json({ error: "Only the project creator can delete this project" });
     }
 
-    if (project.created_by !== req.user.id) {
-      return res.status(403).json({
-        error: "Only the project creator can delete this project",
-      });
-    }
-
-    db.prepare("DELETE FROM projects WHERE id = ?")
-      .run(req.params.id);
-
+    await project.deleteOne();
     res.json({ message: "Project deleted" });
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
